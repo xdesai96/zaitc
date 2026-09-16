@@ -27,7 +27,6 @@ static void update_status(MpdContext *ctx) {
   ctx->song.uri        = new_uri ? strdup(new_uri) : NULL;
   ctx->song.title      = strdup(title ? title : "Unknown");
   ctx->song.artist     = strdup(artist ? artist : "Unkown");
-  
   ctx->status.changed = changed;
   mpd_status_free(status);
   mpd_song_free(current_song);
@@ -35,8 +34,8 @@ static void update_status(MpdContext *ctx) {
 
 int mpd_connect(MpdContext *ctx) {
   ctx->conn = mpd_connection_new(
-    ctx->config.host, 
-    ctx->config.port, 
+    ctx->config.host,
+    ctx->config.port,
     ctx->config.timeout
   );
   if (ctx->conn == NULL) {
@@ -60,7 +59,7 @@ void mpd_disconnect(MpdContext *ctx) {
   }
 }
 
-static void mpd_toggle_playback(MpdContext *ctx) { 
+static void mpd_toggle_playback(MpdContext *ctx) {
   switch (ctx->status.state) {
     case MPD_STATE_STOP: mpd_run_play(ctx->conn); break;
     case MPD_STATE_PAUSE:

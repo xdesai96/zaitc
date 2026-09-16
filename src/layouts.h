@@ -9,9 +9,12 @@
 typedef struct Image Image;
 
 typedef struct {
-  struct ncprogbar *progbar;
   struct ncvisual *ncv;
-} PlayerLayout;
+  struct ncplane *info_plane;
+  struct ncplane *cover_plane;
+  struct ncplane *progbar_plane;
+  struct ncprogbar *progbar;
+} Player;
 
 typedef enum {
   HELP,
@@ -21,23 +24,19 @@ typedef enum {
 
 typedef struct {
   TabId current;
-  struct ncplane *tab_root;
   struct nctab *all[COUNT];
   struct nctabbed *tb;
-} Tabs;
+} Tab;
 
 typedef struct {
   MpdContext *mpd;
-  PlayerLayout player;
-
-  Tabs tabs;
+  Player player;
+  Tab tab;
 } Context;
 
 struct ncvisual *create_cover_visual(Image *img);
-void handle_resize(Context *ctx, struct ncplane *content, struct ncplane *stdplane, unsigned int *curr_y, unsigned int *curr_x);
 void help_callback(struct nctab *t, struct ncplane *ncp, void *curry); // TODO: help_callback
 void player_callback(struct nctab *t, struct ncplane *ncp, void *curry);
-void tab_root_clear(Context *ctx);
 void tab_selector(Context *ctx, uint32_t key_id);
 
 #endif // ZAITC_LAYOUTS

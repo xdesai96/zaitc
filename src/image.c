@@ -25,9 +25,8 @@ int image_load(unsigned char *src, size_t size, Image *img) {
 
 static inline void set_pixel(Image *img, size_t x, size_t y, const unsigned char *rgba) {
   size_t i = (y * img->cols + x) * img->channels;
-  for (size_t j = 0; j < img->channels; ++j) 
+  for (size_t j = 0; j < img->channels; ++j)
     img->data[i + j] = rgba[j];
-  
 }
 
 void generate_default_cover(Image *img) {

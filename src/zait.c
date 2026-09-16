@@ -44,27 +44,25 @@ int main(void) {
     return EXIT_FAILURE;
   }
   struct ncplane *stdplane = notcurses_stdplane(nc);
-  unsigned int std_y, std_x;
-  ncplane_dim_yx(stdplane, &std_y, &std_x);
   struct ncinput ni;
   // CREATE TABS
-  struct nctabbed_options tbopts = { 
-    .selchan   = NCCHANNELS_INITIALIZER(0, 0, 0, 255, 255, 255), 
+  struct nctabbed_options tbopts = {
+    .selchan   = NCCHANNELS_INITIALIZER(0, 0, 0, 255, 255, 255),
     .separator = " ",
   };
   Context ctx = {
     .mpd = &mpdctx,
-    .tabs = {
-      .tab_root = NULL,
+    .tab = {
       .tb = nctabbed_create(stdplane, &tbopts),
     },
     .player = {
       .ncv = create_cover_visual(mpdctx.song.cover),
-      .progbar = NULL
+      .info_plane = NULL
     }
   };
-  ctx.tabs.all[PLAYER]  = nctabbed_add(ctx.tabs.tb, NULL, NULL, player_callback, " [1] PLAYER ", &ctx);
-  ctx.tabs.all[HELP]    = nctabbed_add(ctx.tabs.tb, ctx.tabs.all[PLAYER], NULL, help_callback, " [2] HELP ", &ctx);
+  ctx.tab.all[PLAYER]  = nctabbed_add(ctx.tab.tb, NULL, NULL, player_callback, " [1] PLAYER ", &ctx);
+  ctx.tab.all[HELP]    = nctabbed_add(ctx.tab.tb, ctx.tab.all[PLAYER], NULL, help_callback, " [2] HELP ", &ctx);
+  ctx.tab.current = PLAYER;
   // START LOOP
   int quit = 0;
   unsigned int key_id;
@@ -85,7 +83,7 @@ int main(void) {
       ctx.player.ncv = create_cover_visual(mpdctx.song.cover);
     }
     // RENDER CONTENT
-    nctabbed_redraw(ctx.tabs.tb);
+    nctabbed_redraw(ctx.tab.tb);
     notcurses_render(nc);
     // FPS
     usleep(1000000 / cfg.target_fps);
