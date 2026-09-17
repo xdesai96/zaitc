@@ -138,15 +138,17 @@ static void print_info(Context *ctx) {
 }
 
 static void draw_cover(Context *ctx) {
-  struct notcurses *nc = ncplane_notcurses(ctx->player.info_plane);
-  struct ncplane *blit = ncvisual_blit(nc, ctx->player.cover, &(struct ncvisual_options){
-    .n = ctx->player.cover_plane,
-    .blitter = NCBLIT_8x1,
-    .scaling = NCSCALE_SCALE
-  });
-  if (blit == NULL) {
-    ncplane_printf(ctx->player.cover_plane, "ncvisual_blit failed");
-    return;
+  if (ctx->player.cover) {
+    struct notcurses *nc = ncplane_notcurses(ctx->player.info_plane);
+    struct ncplane *blit = ncvisual_blit(nc, ctx->player.cover, &(struct ncvisual_options){
+      .n = ctx->player.cover_plane,
+      .blitter = NCBLIT_8x1,
+      .scaling = NCSCALE_SCALE
+    });
+    if (blit == NULL) {
+      ncplane_printf(ctx->player.cover_plane, "ncvisual_blit failed");
+      return;
+    }
   }
 }
 
@@ -206,7 +208,11 @@ static void player_update(Context *ctx, struct ncplane *ncp) {
     ncplane_erase(ctx->player.info_plane);
     ncplane_erase(ctx->player.cover_plane);
     ncplane_perimeter_rounded(ctx->player.info_plane, 0, 0, 0);
-    draw_cover(ctx);
+    if (ctx->player.cover != NULL) {
+      ncvisual_destroy(ctx->player.cover);
+      ctx->player.cover = create_cover_visual(ctx->mpd->song.cover);
+      draw_cover(ctx);
+    }
   }
   // TODO: Fix bug with "re-printing" details
   // Now it does not clear the screen before re-printing the info.
