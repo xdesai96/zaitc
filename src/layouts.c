@@ -45,19 +45,16 @@ static void close_player_tab(Context *ctx) {
 }
 
 void tab_selector(Context *ctx, uint32_t key_id) {
-  TabId next;
+  TabId next = ctx->tab.current;
   switch (key_id) {
-  case '1':
-    next = PLAYER;
+  case '1': next = PLAYER; break;
+  case '2': next = HELP;   break;
+  case NCKEY_TAB:
+    next = (ctx->tab.current + 1) % nctabbed_tabcount(ctx->tab.tb);
     break;
-  case '2':
-    next = HELP;
-    break;
-  default:
-    return;
+  default: return;
   }
-  if (next == ctx->tab.current)
-    return;
+  if (next == ctx->tab.current) return;
   ncplane_erase(nctabbed_content_plane(ctx->tab.tb));
   close_player_tab(ctx);
   ctx->tab.current = next;
