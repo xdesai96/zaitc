@@ -34,17 +34,18 @@ nix run git+https://codeberg.org/xdesai/zaitc.git
 
 ### Keybindings
 
-| Key | Action        |
-| --- | ------------- |
-| `p` | Play / pause  |
-| `s` | Stop          |
-| `n` | Next song     |
-| `N` | Previous song |
-| `f` | Seek forward  |
-| `b` | Seek backward |
-| `k` | Volume up     |
-| `j` | Volume down   |
-| `r` | Toggle repeat |
+| Key   | Action        |
+| ----- | ------------- |
+| `p`   | Play / pause  |
+| `s`   | Stop          |
+| `n`   | Next song     |
+| `N`   | Previous song |
+| `f`   | Seek forward  |
+| `b`   | Seek backward |
+| `k`   | Volume up     |
+| `j`   | Volume down   |
+| `r`   | Toggle repeat |
+| `Tab` | Next Tab      |
 
 ### Configuration
 
