@@ -1,5 +1,4 @@
 #include "layouts.h"
-#include <math.h>
 
 enum {
   MAX_TEXT_WIDTH = 30,
@@ -65,7 +64,7 @@ void tab_selector(Context *ctx, uint32_t key_id) {
   nctabbed_select(ctx->tab.tb, ctx->tab.all[next]);
 }
 
-struct ncvisual *create_cover_visual(Image *img) {
+static struct ncvisual *create_cover_visual(Image *img) {
   if (img == NULL || img->data == NULL)
     return NULL;
   return ncvisual_from_rgba(
@@ -77,12 +76,10 @@ struct ncvisual *create_cover_visual(Image *img) {
 }
 
 static void update_progbar(Context *ctx) {
-  double perc = 0;
   if (ctx->mpd->status.duration > 0) {
-    perc = (double) ctx->mpd->status.elapsed / ctx->mpd->status.duration;
-    perc = fmin(perc, 1.0);
+    double perc = fmin((double) ctx->mpd->status.elapsed / ctx->mpd->status.duration, 1.0);
+    ncprogbar_set_progress(ctx->player.progbar, perc);
   }
-  ncprogbar_set_progress(ctx->player.progbar, perc);
   struct ncplane *bar = ncprogbar_plane(ctx->player.progbar);
   ncplane_perimeter_rounded(bar, 0, 0, 0);
   ncplane_printf_aligned(
@@ -95,8 +92,7 @@ static void update_progbar(Context *ctx) {
   );
 }
 
-
-static void create_progbar(Context *ctx, int max_y, int max_x) {
+static void create_progbar(Context *ctx) {
   if (ctx->player.progbar_plane != NULL) {
     ncplane_destroy(ctx->player.progbar_plane);
     ctx->player.progbar_plane = NULL;
@@ -104,10 +100,10 @@ static void create_progbar(Context *ctx, int max_y, int max_x) {
   ctx->player.progbar_plane = ncplane_create(
     ctx->player.info_plane,
     &(struct ncplane_options){
-      .y    = (max_y - 4),
+      .y    = (info_height(ctx) - 4),
       .x    = 2,
       .rows = 3,
-      .cols = max_x - 4
+      .cols = info_width(ctx) - 4
     }
   );
   if (ctx->player.progbar_plane == NULL)
@@ -138,11 +134,12 @@ static void print_info(Context *ctx) {
     IMAGE_PADDING_Y + 2, cover_width(ctx) + TEXT_PADDING_X,
     "Volume: %d%%", ctx->mpd->status.volume
   );
+  // TODO: Show states for "repeat" "single" and so on
 }
 
 static void draw_cover(Context *ctx) {
   struct notcurses *nc = ncplane_notcurses(ctx->player.info_plane);
-  struct ncplane *blit = ncvisual_blit(nc, ctx->player.ncv, &(struct ncvisual_options){
+  struct ncplane *blit = ncvisual_blit(nc, ctx->player.cover, &(struct ncvisual_options){
     .n = ctx->player.cover_plane,
     .blitter = NCBLIT_8x1,
     .scaling = NCSCALE_SCALE
@@ -156,6 +153,8 @@ static void draw_cover(Context *ctx) {
 static void player_init(Context *ctx, struct ncplane *ncp) {
   if (ctx->player.info_plane != NULL)
     return;
+  if (ctx->player.cover == NULL)
+    ctx->player.cover = create_cover_visual(ctx->mpd->song.cover);
   unsigned int max_x, max_y;
   ncplane_dim_yx(ncp, &max_y, &max_x);
   ctx->player.info_plane = ncplane_create(
@@ -167,11 +166,12 @@ static void player_init(Context *ctx, struct ncplane *ncp) {
       .cols = info_width(ctx),
     }
   );
-  ncplane_perimeter_rounded(ctx->player.info_plane, 0, 0, 0);
   if (ctx->player.info_plane == NULL) {
     ncplane_printf(ncp, "Failed to create info plane");
     return;
   }
+  print_info(ctx);
+  ncplane_perimeter_rounded(ctx->player.info_plane, 0, 0, 0);
   ctx->player.cover_plane = ncplane_create(ctx->player.info_plane, &(struct ncplane_options){
     .y = IMAGE_PADDING_Y,
     .x = IMAGE_PADDING_X,
@@ -182,19 +182,16 @@ static void player_init(Context *ctx, struct ncplane *ncp) {
     ncplane_printf(ctx->player.info_plane, "Failed to create cover plane");
     return;
   }
-  if (ctx->player.ncv == NULL) {
-    ncplane_printf_yx(ncp, 0, 0, "No cover");
+  if (ctx->player.cover == NULL) {
+    ncplane_printf_yx(ctx->player.info_plane, 0, 0, "No cover");
     return;
   }
   draw_cover(ctx);
-  print_info(ctx);
-  ncplane_dim_yx(ctx->player.info_plane, &max_y, &max_x);
-  create_progbar(ctx, max_y, max_x);
+  create_progbar(ctx);
   update_progbar(ctx);
 }
 
 static void player_update(Context *ctx, struct ncplane *ncp) {
-  (void)ncp; // WARNING: unused
   if (ctx->player.info_plane == NULL)
     return;
   if (ctx->mpd->status.changed) {
@@ -211,6 +208,9 @@ static void player_update(Context *ctx, struct ncplane *ncp) {
     ncplane_perimeter_rounded(ctx->player.info_plane, 0, 0, 0);
     draw_cover(ctx);
   }
+  // TODO: Fix bug with "re-printing" details
+  // Now it does not clear the screen before re-printing the info.
+  // E.g if you got 100% volume and then decrease it it shows the "%" char twice.
   print_info(ctx);
   update_progbar(ctx);
 }

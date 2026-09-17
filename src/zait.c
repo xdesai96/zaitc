@@ -13,19 +13,19 @@ int main(void) {
   // INIT CONFIG
   // TODO: Config
   Config cfg = {
-    .mpd = {.host = "localhost", .port = 6600, .timeout = 10000},
+    .mpd = { .host = "localhost", .port = 6600, .timeout = 10000 },
     .target_fps = 24, // To save your CPU
   };
   // INIT MPD
   Image cover = {0};
-  MpdContext mpdctx = {
+  Mpd mpd = {
     .conn   = NULL,
     .config = cfg.mpd,
-    .song = {
+    .song   = {
       .cover = &cover,
     },
   };
-  int connected = mpd_connect(&mpdctx);
+  int connected = mpd_connect(&mpd);
   if (!connected) {
     fprintf(stderr, "MPD: Couldn't connect\n");
     return 1;
@@ -40,7 +40,7 @@ int main(void) {
   };
   struct notcurses *nc = notcurses_init(&ncopts, NULL);
   if (nc == NULL) {
-    mpd_disconnect(&mpdctx);
+    mpd_disconnect(&mpd);
     return EXIT_FAILURE;
   }
   struct ncplane *stdplane = notcurses_stdplane(nc);
@@ -51,14 +51,10 @@ int main(void) {
     .separator = " ",
   };
   Context ctx = {
-    .mpd = &mpdctx,
+    .mpd = &mpd,
     .tab = {
       .tb = nctabbed_create(stdplane, &tbopts),
     },
-    .player = {
-      .ncv = create_cover_visual(mpdctx.song.cover),
-      .info_plane = NULL
-    }
   };
   ctx.tab.all[PLAYER]  = nctabbed_add(ctx.tab.tb, NULL, NULL, player_callback, " [1] PLAYER ", &ctx);
   ctx.tab.all[HELP]    = nctabbed_add(ctx.tab.tb, ctx.tab.all[PLAYER], NULL, help_callback, " [2] HELP ", &ctx);
@@ -75,21 +71,20 @@ int main(void) {
       ni.evtype == NCTYPE_UNKNOWN)) { // NOTE: for st does not work without NCTYPE_UNKNOWN
       if (key_id == 'q')
         quit = 1;
-      mpd_handle_keys(key_id, &mpdctx);
+      mpd_handle_keys(key_id, &mpd);
       tab_selector(&ctx, key_id);
     }
-    if (mpd_get_current_song(&mpdctx)) {
-      ncvisual_destroy(ctx.player.ncv);
-      ctx.player.ncv = create_cover_visual(mpdctx.song.cover);
-    }
+
+    mpd_get_current_song(&mpd);
+
     // RENDER CONTENT
     nctabbed_redraw(ctx.tab.tb);
     notcurses_render(nc);
     // FPS
     usleep(1000000 / cfg.target_fps);
   }
-  mpd_disconnect(&mpdctx);
-  ncvisual_destroy(ctx.player.ncv);
+  mpd_disconnect(&mpd);
+  ncvisual_destroy(ctx.player.cover);
   notcurses_stop(nc);
   return EXIT_SUCCESS;
 }

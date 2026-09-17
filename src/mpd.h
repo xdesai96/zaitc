@@ -2,8 +2,9 @@
 #define ZAITC_MPD
 
 #include "image.h"
-#include <string.h>
+#include <math.h>
 #include <mpd/client.h>
+#include <string.h>
 
 typedef struct {
   bool changed;
@@ -30,14 +31,12 @@ typedef struct {
   MpdSong song;
   MpdStatus status;
   struct mpd_connection *conn;
-} MpdContext;
+} Mpd;
 
-int mpd_connect(MpdContext *ctx);
-void mpd_disconnect(MpdContext *ctx);
+int mpd_connect(Mpd *ctx);
+void mpd_disconnect(Mpd *ctx);
 
-int mpd_get_current_song(MpdContext *ctx);
-void mpd_handle_keys(uint32_t key_id, MpdContext *ctx);
-
-int mpd_load_cover(MpdContext *ctx);
+void mpd_get_current_song(Mpd *ctx);
+void mpd_handle_keys(uint32_t key_id, Mpd *ctx);
 
 #endif // ZAITC_MPD

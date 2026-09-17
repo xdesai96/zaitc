@@ -1,7 +1,6 @@
-#include "../thirdparty/stb_image.h"
 #include "mpd.h"
 
-static void update_status(MpdContext *ctx) {
+static void update_status(Mpd *ctx) {
   struct mpd_status *status = mpd_run_status(ctx->conn);
   if (!status)
     return;
@@ -14,7 +13,7 @@ static void update_status(MpdContext *ctx) {
   const char *artist   = mpd_song_get_tag(current_song, MPD_TAG_ARTIST, 0);
   ctx->status.state    = mpd_status_get_state(status);
   ctx->status.repeat   = mpd_status_get_repeat(status);
-  ctx->status.volume   = mpd_status_get_volume(status);
+  ctx->status.volume   = fmax(mpd_status_get_volume(status), 0);
   ctx->status.single   = mpd_status_get_single_state(status);
   ctx->status.consume  = mpd_status_get_consume_state(status);
   ctx->status.duration = mpd_status_get_total_time(status);
@@ -32,7 +31,7 @@ static void update_status(MpdContext *ctx) {
   mpd_song_free(current_song);
 }
 
-int mpd_connect(MpdContext *ctx) {
+int mpd_connect(Mpd *ctx) {
   ctx->conn = mpd_connection_new(
     ctx->config.host,
     ctx->config.port,
@@ -48,7 +47,7 @@ int mpd_connect(MpdContext *ctx) {
   return 1;
 }
 
-void mpd_disconnect(MpdContext *ctx) {
+void mpd_disconnect(Mpd *ctx) {
   if (ctx->conn != NULL) {
     mpd_connection_free(ctx->conn);
     ctx->conn = NULL;
@@ -59,7 +58,7 @@ void mpd_disconnect(MpdContext *ctx) {
   }
 }
 
-static void mpd_toggle_playback(MpdContext *ctx) {
+static void mpd_toggle_playback(Mpd *ctx) {
   switch (ctx->status.state) {
     case MPD_STATE_STOP: mpd_run_play(ctx->conn); break;
     case MPD_STATE_PAUSE:
@@ -68,35 +67,34 @@ static void mpd_toggle_playback(MpdContext *ctx) {
   }
 }
 
-static void mpd_safe_next(MpdContext *ctx) {
+static void mpd_safe_next(Mpd *ctx) {
   if (ctx->status.state == MPD_STATE_STOP)
     mpd_toggle_playback(ctx);
   mpd_run_next(ctx->conn);
 }
 
-static void mpd_safe_prev(MpdContext *ctx) {
+static void mpd_safe_prev(Mpd *ctx) {
   if (ctx->status.state == MPD_STATE_STOP)
     mpd_toggle_playback(ctx);
   mpd_run_previous(ctx->conn);
 }
 
-void mpd_handle_keys(uint32_t key_id, MpdContext *ctx) {
+void mpd_handle_keys(uint32_t key_id, Mpd *ctx) {
   switch (key_id) {
-    case 'p': mpd_toggle_playback(ctx);                            break;
-    case 'n': mpd_safe_next(ctx);                                  break;
-    case 'N': mpd_safe_prev(ctx);                                  break;
-    case 's': mpd_run_stop(ctx->conn);                             break;
-    case 'r': mpd_run_repeat(ctx->conn, !ctx->status.repeat);      break;
-    case 'f': mpd_run_seek_current(ctx->conn, 2, true);            break;
-    case 'b': mpd_run_seek_current(ctx->conn, -2, true);           break;
-    case 'j': mpd_run_set_volume(ctx->conn, ctx->status.volume-5); break;
-    case 'k': mpd_run_set_volume(ctx->conn, ctx->status.volume+5); break;
-    default:                                                       break;
+    case 'p': mpd_toggle_playback(ctx);                                       break;
+    case 'n': mpd_safe_next(ctx);                                             break;
+    case 'N': mpd_safe_prev(ctx);                                             break;
+    case 's': mpd_run_stop(ctx->conn);                                        break;
+    case 'r': mpd_run_repeat(ctx->conn, !ctx->status.repeat);                 break;
+    case 'f': mpd_run_seek_current(ctx->conn, 2, true);                       break;
+    case 'b': mpd_run_seek_current(ctx->conn, -2, true);                      break;
+    case 'j': mpd_run_set_volume(ctx->conn, fmax(ctx->status.volume-5, 0));   break;
+    case 'k': mpd_run_set_volume(ctx->conn, fmin(ctx->status.volume+5, 100)); break;
   }
   return;
 }
 
-int mpd_load_cover(MpdContext *ctx) {
+static int mpd_load_cover(Mpd *ctx) {
   const size_t capacity = 1024*1024;
   unsigned char *read = malloc(capacity);
   if (read == NULL)
@@ -120,12 +118,11 @@ int mpd_load_cover(MpdContext *ctx) {
   return result;
 }
 
-int mpd_get_current_song(MpdContext *ctx) {
+void mpd_get_current_song(Mpd *ctx) {
   update_status(ctx);
-  if (!ctx->status.changed)
-    return 0;
-  free(ctx->song.cover->data);
-  if (!mpd_load_cover(ctx))
-    generate_default_cover(ctx->song.cover);
-  return 1;
+  if (ctx->status.changed) {
+    free(ctx->song.cover->data);
+    if (!mpd_load_cover(ctx))
+      generate_default_cover(ctx->song.cover);
+  }
 }
