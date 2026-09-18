@@ -30,6 +30,7 @@
           );
         };
         packages.default = pkgs.stdenv.mkDerivation {
+          name = "zaitc";
           pname = "zaitc";
           version = "1.0.0";
           src = ./.;
