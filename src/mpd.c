@@ -1,4 +1,6 @@
 #include "mpd.h"
+#include <mpd/player.h>
+#include <mpd/status.h>
 
 static void update_status(Mpd *ctx) {
   struct mpd_status *status = mpd_run_status(ctx->conn);
@@ -16,9 +18,10 @@ static void update_status(Mpd *ctx) {
   ctx->status.volume   = fmax(mpd_status_get_volume(status), 0);
   ctx->status.single   = mpd_status_get_single_state(status);
   ctx->status.consume  = mpd_status_get_consume_state(status);
+  ctx->status.random   = mpd_status_get_random(status);
   ctx->status.duration = mpd_status_get_total_time(status);
   ctx->status.elapsed  = mpd_status_get_elapsed_ms(status) / 1000;
-  const char *new_uri = mpd_song_get_uri(current_song);
+  const char *new_uri  = mpd_song_get_uri(current_song);
   bool changed = ctx->song.uri == NULL || new_uri == NULL || strcmp(ctx->song.uri, new_uri) != 0;
   free(ctx->song.uri);
   free(ctx->song.title);
@@ -26,7 +29,7 @@ static void update_status(Mpd *ctx) {
   ctx->song.uri        = new_uri ? strdup(new_uri) : NULL;
   ctx->song.title      = strdup(title ? title : "Unknown");
   ctx->song.artist     = strdup(artist ? artist : "Unkown");
-  ctx->status.changed = changed;
+  ctx->status.changed  = changed;
   mpd_status_free(status);
   mpd_song_free(current_song);
 }
@@ -60,10 +63,10 @@ void mpd_disconnect(Mpd *ctx) {
 
 static void mpd_toggle_playback(Mpd *ctx) {
   switch (ctx->status.state) {
+    case MPD_STATE_UNKNOWN:
     case MPD_STATE_STOP: mpd_run_play(ctx->conn); break;
     case MPD_STATE_PAUSE:
     case MPD_STATE_PLAY: mpd_run_toggle_pause(ctx->conn); break;
-    default: break;
   }
 }
 
@@ -86,6 +89,8 @@ void mpd_handle_keys(uint32_t key_id, Mpd *ctx) {
     case 'N': mpd_safe_prev(ctx);                                             break;
     case 's': mpd_run_stop(ctx->conn);                                        break;
     case 'r': mpd_run_repeat(ctx->conn, !ctx->status.repeat);                 break;
+    case 'R': mpd_run_random(ctx->conn, !ctx->status.random);                 break;
+    case 't': mpd_run_single(ctx->conn, !ctx->status.single);                 break;
     case 'f': mpd_run_seek_current(ctx->conn, 2, true);                       break;
     case 'b': mpd_run_seek_current(ctx->conn, -2, true);                      break;
     case 'j': mpd_run_set_volume(ctx->conn, fmax(ctx->status.volume-5, 0));   break;

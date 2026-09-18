@@ -47,6 +47,8 @@ nix run git+https://codeberg.org/xdesai/zaitc.git
 | `k`   | Volume up     |
 | `j`   | Volume down   |
 | `r`   | Toggle repeat |
+| `R`   | Toggle random |
+| `t`   | Toggle single |
 | `Tab` | Next Tab      |
 
 </details>
