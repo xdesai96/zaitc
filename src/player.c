@@ -27,7 +27,7 @@ static bool create_custom_plane(struct ncplane *parent, struct ncplane **ncp, in
     }
   );
   if (*ncp == NULL) {
-    ncplane_printf_yx(parent, 1, 1, "Failed to create info plane");
+    ncplane_printf_yx(parent, 1, 1, "Failed to create plane");
     return false;
   }
   return true;
@@ -59,11 +59,33 @@ static void print_details(struct ncplane *ncp, Mpd *mpd, int begy, int x) {
   ncplane_printf_yx(ncp, begy+4, 1, "State: %s", state);
 }
 
+static void create_progbar(struct ncplane *ncp, struct ncprogbar **progbar) {
+  ncprogbar_options opts = {
+    .ulchannel = NCCHANNEL_INITIALIZER(255, 255, 255),
+    .urchannel = NCCHANNEL_INITIALIZER(255, 255, 255),
+    .blchannel = NCCHANNEL_INITIALIZER(255, 255, 255),
+    .brchannel = NCCHANNEL_INITIALIZER(255, 255, 255),
+  };
+  *progbar = ncprogbar_create(ncp, &opts);
+}
+
+static void update_progbar(struct ncprogbar *progbar, Mpd *mpd) {
+  if (mpd->status.duration > 0) {
+    double perc = fmin((double) mpd->status.elapsed / mpd->status.duration, 1.0);
+    ncprogbar_set_progress(progbar, perc);
+  }
+  struct ncplane *bar = ncprogbar_plane(progbar);
+  ncplane_perimeter_rounded(bar, 0, 0, 0);
+  ncplane_printf_aligned(bar, 0, NCALIGN_LEFT, "%02d:%02d", mpd->status.elapsed / 60, mpd->status.elapsed % 60);
+  ncplane_printf_aligned(bar, 0, NCALIGN_RIGHT, "%02d:%02d", mpd->status.duration / 60, mpd->status.duration % 60);
+}
+
 static bool init(PlayerContext *ctx, struct ncplane *ncp) {
   if (ctx->view.root.plane != NULL)
     return false;
   unsigned int max_y, max_x;
   ncplane_dim_yx(ncp, &max_y, &max_x);
+  // Root
   if(!create_custom_plane(
     ncp,
     &ctx->view.root.plane,
@@ -72,11 +94,11 @@ static bool init(PlayerContext *ctx, struct ncplane *ncp) {
   ))
     return false;
   ncplane_perimeter_rounded(ctx->view.root.plane, 0, 0, 0);
-
+  // Visual
   ctx->view.cover = create_visual(ctx->mpd->song.cover);
   if (ctx->view.cover == NULL)
     return false;
-
+  // Cover
   if (!create_custom_plane(
     ctx->view.root.plane,
     &ctx->view.cover_plane,
@@ -84,8 +106,8 @@ static bool init(PlayerContext *ctx, struct ncplane *ncp) {
     (ctx->view.root.height - 4) / 2, ctx->view.root.height - 4
   ))
     return false;
-
   draw_cover(ctx->view.cover_plane, ctx->view.cover);
+  // Details
   ncplane_dim_yx(ctx->view.cover_plane, &max_y, &max_x);
   if(!create_custom_plane(
     ctx->view.root.plane,
@@ -94,6 +116,16 @@ static bool init(PlayerContext *ctx, struct ncplane *ncp) {
     ctx->view.root.height - 6, ctx->view.root.width - max_x - 6
   ))
     return false;
+  // Progbar
+  if (!create_custom_plane(
+    ctx->view.root.plane,
+    &ctx->view.progbar_plane,
+    ctx->view.root.height - 4, 2,
+    3, ctx->view.root.width - 4
+  ))
+    return false;
+  create_progbar(ctx->view.progbar_plane, &ctx->view.progbar);
+  update_progbar(ctx->view.progbar, ctx->mpd);
   return true;
 }
 
@@ -114,6 +146,8 @@ static void player_update(PlayerContext *ctx) {
     ncplane_erase(ctx->view.details_plane);
     print_details(ctx->view.details_plane, ctx->mpd, 1, 1);
   }
+  if (ctx->view.progbar_plane != NULL && ctx->view.progbar != NULL)
+    update_progbar(ctx->view.progbar, ctx->mpd);
   return;
 }
 
