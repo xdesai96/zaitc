@@ -45,7 +45,16 @@ static void draw_cover(struct ncplane *ncp, struct ncvisual *ncv) {
 }
 
 static void print_details(struct ncplane *ncp, Mpd *mpd, int begy, int x) {
-  ncplane_printf_yx(ncp, begy+0, x, "%s - %s", mpd->song.artist, mpd->song.title);
+  unsigned int max_x = ncplane_dim_x(ncp);
+  size_t available = max_x - x - strlen(mpd->song.artist) - 3;
+  bool truncated = strlen(mpd->song.title) > available;
+  ncplane_printf_yx(
+    ncp,
+    begy+0, x,
+    "%s - %.*s%s",
+    mpd->song.artist,
+    (int)(truncated ? available - 3 : available), mpd->song.title, truncated ? "..." : ""
+  );
   ncplane_printf_yx(ncp, begy+1, x, "Random: %s", mpd->status.random ? "on" : "off");
   ncplane_printf_yx(ncp, begy+2, x, "Repeat: %s", mpd->status.repeat ? "on" : "off");
   ncplane_printf_yx(ncp, begy+3, x, "Single: %s", mpd->status.single ? "on" : "off");

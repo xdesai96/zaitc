@@ -57,8 +57,8 @@ int main(void) {
     .mpd = &mpd,
     .view = {
       .root = {
-        .height = 20,
-        .width = 60,
+        .height = 15,
+        .width = 80,
       },
     },
   };
