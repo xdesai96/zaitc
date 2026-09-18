@@ -3,11 +3,13 @@
 
 #include "config.h"
 #include "../thirdparty/stb_image.h"
+#include <math.h>
 
 typedef struct Image {
   size_t alpha;
   size_t channels;
   size_t rows, cols;
+  double scale;
   unsigned char *data;
 } Image;
 
