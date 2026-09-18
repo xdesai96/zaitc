@@ -1,7 +1,8 @@
 #include "config.h"
 #include "tabs.h"
-#include "layouts.h"
+#include "player.h"
 #include "mpd.h"
+#include <stdio.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "../thirdparty/stb_image.h"
@@ -22,7 +23,7 @@ int main(void) {
   Mpd mpd = {
     .conn   = NULL,
     .config = cfg.mpd,
-    .song   = {
+    .song = {
       .cover = &cover,
     },
   };
@@ -54,25 +55,30 @@ int main(void) {
   };
   PlayerContext playerCtx = {
     .mpd = &mpd,
+    .view = {
+      .root = {
+        .height = 20,
+        .width = 60,
+      },
+    },
   };
   TabList tabs = { .tb = nctabbed_create(stdplane, &tbopts) };
   TabView player = {
     .key_id = '1',
     .next = NULL,
     .tab = nctabbed_add(tabs.tb, NULL, NULL, player_callback, " [1] PLAYER ", &playerCtx),
-    .destroyFn = cleanup_player,
-    .data = &playerCtx,
+    .destroyFn = player_view_destroy,
+    .data = &playerCtx.view,
   };
   tabs.head = &player;
-  tabs.current = &player;
+  tabs.current = tabs.head;
   player.next = &(TabView){
     .key_id = '2',
     .next = NULL,
-    .tab = nctabbed_add(tabs.tb, player.tab, NULL, help_callback, " [2] HELP ", NULL),
+    .tab = nctabbed_add(tabs.tb, player.tab, NULL, NULL, " [2] HELP ", NULL),
     .data = NULL,
     .destroyFn = NULL,
   };
-
   // START LOOP
   int quit = 0;
   unsigned int key_id;
