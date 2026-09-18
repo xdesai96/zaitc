@@ -1,4 +1,5 @@
 #include "config.h"
+#include "tabs.h"
 #include "layouts.h"
 #include "mpd.h"
 
@@ -47,18 +48,31 @@ int main(void) {
   struct ncinput ni;
   // CREATE TABS
   struct nctabbed_options tbopts = {
-    .selchan   = NCCHANNELS_INITIALIZER(0, 0, 0, 255, 255, 255),
+    .selchan   = NCCHANNELS_INITIALIZER(255, 255, 255, NCALPHA_TRANSPARENT, NCALPHA_TRANSPARENT, NCALPHA_TRANSPARENT),
+    .hdrchan   = NCCHANNELS_INITIALIZER(155, 155, 155, NCALPHA_TRANSPARENT, NCALPHA_TRANSPARENT, NCALPHA_TRANSPARENT),
     .separator = " ",
   };
-  Context ctx = {
+  PlayerContext playerCtx = {
     .mpd = &mpd,
-    .tab = {
-      .tb = nctabbed_create(stdplane, &tbopts),
-    },
   };
-  ctx.tab.all[PLAYER]  = nctabbed_add(ctx.tab.tb, NULL, NULL, player_callback, " [1] PLAYER ", &ctx);
-  ctx.tab.all[HELP]    = nctabbed_add(ctx.tab.tb, ctx.tab.all[PLAYER], NULL, help_callback, " [2] HELP ", &ctx);
-  ctx.tab.current = PLAYER;
+  TabList tabs = { .tb = nctabbed_create(stdplane, &tbopts) };
+  TabView player = {
+    .key_id = '1',
+    .next = NULL,
+    .tab = nctabbed_add(tabs.tb, NULL, NULL, player_callback, " [1] PLAYER ", &playerCtx),
+    .destroyFn = cleanup_player,
+    .data = &playerCtx,
+  };
+  tabs.head = &player;
+  tabs.current = &player;
+  player.next = &(TabView){
+    .key_id = '2',
+    .next = NULL,
+    .tab = nctabbed_add(tabs.tb, player.tab, NULL, help_callback, " [2] HELP ", NULL),
+    .data = NULL,
+    .destroyFn = NULL,
+  };
+
   // START LOOP
   int quit = 0;
   unsigned int key_id;
@@ -72,19 +86,17 @@ int main(void) {
       if (key_id == 'q')
         quit = 1;
       mpd_handle_keys(key_id, &mpd);
-      tab_selector(&ctx, key_id);
+      tab_bindings(&tabs, key_id);
     }
-
     mpd_get_current_song(&mpd);
-
     // RENDER CONTENT
-    nctabbed_redraw(ctx.tab.tb);
+    nctabbed_redraw(tabs.tb);
     notcurses_render(nc);
     // FPS
     usleep(1000000 / cfg.target_fps);
   }
   mpd_disconnect(&mpd);
-  ncvisual_destroy(ctx.player.cover);
+  ncvisual_destroy(playerCtx.view.cover);
   notcurses_stop(nc);
   return EXIT_SUCCESS;
 }

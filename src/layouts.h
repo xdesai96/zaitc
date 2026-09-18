@@ -17,26 +17,13 @@ typedef struct {
   struct ncprogbar *progbar;
 } PlayerView;
 
-typedef enum {
-  HELP,
-  PLAYER,
-  COUNT,
-} TabId;
-
-typedef struct {
-  TabId current;
-  struct nctab *all[COUNT];
-  struct nctabbed *tb;
-} Tab;
-
 typedef struct {
   Mpd *mpd;
-  PlayerView player;
-  Tab tab;
-} Context;
+  PlayerView view;
+} PlayerContext;
 
 void help_callback(struct nctab *t, struct ncplane *ncp, void *curry); // TODO: help_callback
 void player_callback(struct nctab *t, struct ncplane *ncp, void *curry);
-void tab_selector(Context *ctx, uint32_t key_id);
+void cleanup_player(void *data);
 
 #endif // ZAITC_LAYOUTS
