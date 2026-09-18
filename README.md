@@ -34,6 +34,8 @@ nix run git+https://codeberg.org/xdesai/zaitc.git
 
 ### Keybindings
 
+<details><summary>The table of bindings</summary>
+
 | Key   | Action        |
 | ----- | ------------- |
 | `p`   | Play / pause  |
@@ -46,6 +48,8 @@ nix run git+https://codeberg.org/xdesai/zaitc.git
 | `j`   | Volume down   |
 | `r`   | Toggle repeat |
 | `Tab` | Next Tab      |
+
+</details>
 
 ### Configuration
 
