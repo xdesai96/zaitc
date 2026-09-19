@@ -127,7 +127,8 @@ void mpd_get_current_song(Mpd *ctx) {
   update_status(ctx);
   if (ctx->status.changed) {
     free(ctx->song.cover->data);
-    if (!mpd_load_cover(ctx))
-      generate_default_cover(ctx->song.cover);
+    if (ctx->song.cover->can_load)
+      if (!mpd_load_cover(ctx))
+        generate_default_cover(ctx->song.cover);
   }
 }

@@ -79,6 +79,8 @@ int main(void) {
     .data = NULL,
     .destroyFn = NULL,
   };
+  // Can we load images?
+  mpd.song.cover->can_load = notcurses_canopen_images(nc);
   // START LOOP
   int quit = 0;
   unsigned int key_id;

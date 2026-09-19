@@ -6,6 +6,7 @@
 #include <math.h>
 
 typedef struct Image {
+  bool can_load;
   size_t alpha;
   size_t channels;
   size_t rows, cols;

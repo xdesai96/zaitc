@@ -3,14 +3,17 @@
 #include <notcurses/notcurses.h>
 
 static struct ncvisual *create_visual(Image *img) {
-  if (img == NULL || img->data == NULL)
-    return NULL;
-  return ncvisual_from_rgba(
-    img->data,
-    img->rows,
-    img->cols * img->channels,
-    img->cols
-  );
+  if (img->can_load) {
+    if (img == NULL || img->data == NULL)
+      return NULL;
+    return ncvisual_from_rgba(
+      img->data,
+      img->rows,
+      img->cols * img->channels,
+      img->cols
+    );
+  }
+  return NULL;
 }
 
 static bool create_custom_plane(struct ncplane *parent, struct ncplane **ncp, int y, int x, int rows, int cols) {
@@ -104,20 +107,26 @@ static bool init(PlayerContext *ctx, struct ncplane *ncp) {
     return false;
   ncplane_perimeter_rounded(ctx->view.root.plane, 0, 0, 0);
   // Visual
-  ctx->view.cover = create_visual(ctx->mpd->song.cover);
-  if (ctx->view.cover == NULL)
-    return false;
-  // Cover
-  if (!create_custom_plane(
-    ctx->view.root.plane,
-    &ctx->view.cover_plane,
-    1, 2,
-    (ctx->view.root.height - 4) / 2, ctx->view.root.height - 4
-  ))
-    return false;
-  draw_cover(ctx->view.cover_plane, ctx->view.cover);
+  if (ctx->mpd->song.cover->can_load) {
+    ctx->view.cover = create_visual(ctx->mpd->song.cover);
+    if (ctx->view.cover == NULL)
+      return false;
+    // Cover
+    if (!create_custom_plane(
+      ctx->view.root.plane,
+      &ctx->view.cover_plane,
+      2, 2,
+      (ctx->view.root.height - 4) / 2, ctx->view.root.height
+    ))
+      return false;
+    draw_cover(ctx->view.cover_plane, ctx->view.cover);
+    ncplane_dim_yx(ctx->view.cover_plane, &max_y, &max_x);
+  } else {
+    // Printing at start of root plane if couldn't create
+    // the cover plane (if your terminal does not support)
+    max_x = 0;
+  }
   // Details
-  ncplane_dim_yx(ctx->view.cover_plane, &max_y, &max_x);
   if(!create_custom_plane(
     ctx->view.root.plane,
     &ctx->view.details_plane,
@@ -144,7 +153,7 @@ static void player_update(PlayerContext *ctx) {
     return;
   }
   if (ctx->mpd->status.changed) {
-    if (ctx->view.cover_plane != NULL && ctx->view.cover) {
+    if ((ctx->view.cover_plane != NULL && ctx->view.cover) && ctx->mpd->song.cover->can_load) {
       ncplane_erase(ctx->view.cover_plane);
       ncvisual_destroy(ctx->view.cover);
       ctx->view.cover = create_visual(ctx->mpd->song.cover);
