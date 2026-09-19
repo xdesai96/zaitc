@@ -1,7 +1,9 @@
 #ifndef ZAITC_CONFIG
 #define ZAITC_CONFIG
 
+#include "../thirdparty/tomlc17.h"
 #include <stdlib.h>
+#include <string.h>
 
 typedef struct {
   char *host;
@@ -11,7 +13,9 @@ typedef struct {
 
 typedef struct {
   MpdConfig mpd;
-  unsigned int target_fps;
 } Config;
+
+int config_load(Config *config);
+void config_free(Config *config);
 
 #endif // ZAITC_CONFIG

@@ -6,18 +6,18 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "../thirdparty/stb_image.h"
+#include "../thirdparty/tomlc17.h"
 
 #include <mpd/client.h>
 #include <notcurses/notcurses.h>
 #include <unistd.h>
 
 int main(void) {
-  // INIT CONFIG
-  // TODO: Config
-  Config cfg = {
-    .mpd = { .host = "localhost", .port = 6600, .timeout = 10000 },
-    .target_fps = 24, // To save your CPU
-  };
+  // LOAD CONFIG
+  Config cfg = {0};
+  if (!config_load(&cfg)) {
+    return EXIT_FAILURE;
+  }
   // INIT MPD
   Image cover = {0};
   Mpd mpd = {
@@ -42,7 +42,9 @@ int main(void) {
   };
   struct notcurses *nc = notcurses_init(&ncopts, NULL);
   if (nc == NULL) {
+    config_free(&cfg);
     mpd_disconnect(&mpd);
+    fprintf(stderr, "NOTCURSES: Couldn't initialize");
     return EXIT_FAILURE;
   }
   struct ncplane *stdplane = notcurses_stdplane(nc);
@@ -101,9 +103,10 @@ int main(void) {
     nctabbed_redraw(tabs.tb);
     notcurses_render(nc);
     // FPS
-    usleep(1000000 / cfg.target_fps);
+    usleep(1000000 / 24); // To save your cpu
   }
   mpd_disconnect(&mpd);
+  config_free(&cfg);
   ncvisual_destroy(playerCtx.view.cover);
   notcurses_stop(nc);
   return EXIT_SUCCESS;
