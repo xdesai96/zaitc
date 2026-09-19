@@ -47,16 +47,38 @@ static void draw_cover(struct ncplane *ncp, struct ncvisual *ncv) {
     ncplane_printf(ncp, "Couldn't draw the image");
 }
 
+static size_t ncstring_bytes_length(struct ncplane *ncp, const char *p, size_t available, size_t xz) {
+  size_t used_width = 0;
+  size_t used_bytes = 0;
+  if (available < xz)
+    return 0;
+  while (*p) {
+    nccell c = {0};
+    int bytes = nccell_load(ncp, &c, p);
+    if (bytes < 0)
+      break;
+    if (used_width + c.width > available - xz)
+      break;
+    used_width += c.width;
+    used_bytes += bytes;
+    p += bytes;
+  }
+  return used_bytes;
+}
+
 static void print_details(struct ncplane *ncp, Mpd *mpd, int begy, int x) {
   unsigned int max_x = ncplane_dim_x(ncp);
-  size_t available = max_x - x - strlen(mpd->song.artist) - 3;
-  bool truncated = strlen(mpd->song.title) > available;
+  int validwidth;
+  ncstrwidth(mpd->song.artist, NULL, &validwidth);
+  size_t available = max_x - x - validwidth - 3;
+  ncstrwidth(mpd->song.title, NULL, &validwidth);
+  bool truncated = (size_t)(validwidth) > available;
   ncplane_printf_yx(
     ncp,
     begy+0, x,
     "%s - %.*s%s",
     mpd->song.artist,
-    (int)(truncated ? available - 3 : available), mpd->song.title, truncated ? "..." : ""
+    (int)(truncated ? ncstring_bytes_length(ncp, mpd->song.title, available, 3) : available), mpd->song.title, truncated ? "..." : ""
   );
   ncplane_printf_yx(ncp, begy+1, x, "Random: %s", mpd->status.random ? "on" : "off");
   ncplane_printf_yx(ncp, begy+2, x, "Repeat: %s", mpd->status.repeat ? "on" : "off");
