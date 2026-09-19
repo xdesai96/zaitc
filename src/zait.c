@@ -15,7 +15,9 @@
 int main(void) {
   // LOAD CONFIG
   Config cfg = {0};
-  config_load(&cfg);
+  if (!config_load(&cfg)) {
+    return EXIT_FAILURE;
+  }
   // INIT MPD
   Image cover = {0};
   Mpd mpd = {

@@ -15,7 +15,7 @@ typedef struct {
   MpdConfig mpd;
 } Config;
 
-void config_load(Config *config);
+int config_load(Config *config);
 void config_free(Config *config);
 
 #endif // ZAITC_CONFIG
