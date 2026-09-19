@@ -14,8 +14,8 @@ typedef struct {
 
 // PLAYER TAB
 typedef struct {
-  size_t plane_width;
-  size_t plane_height;
+  size_t width;
+  size_t height;
 } PlayerRootPlane;
 
 typedef struct {

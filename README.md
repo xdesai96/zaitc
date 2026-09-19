@@ -67,6 +67,9 @@ Default config:
 host = "localhost"
 port = 6600
 timeout = 10000
+
+[tabs.player]
+plane = { width = 80, height = 15 }
 ```
 
 ## TODO

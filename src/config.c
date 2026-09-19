@@ -81,8 +81,8 @@ static void load_tabs_config(toml_result_t *result, Config *config) {
   if (!load_int(*result, "tabs.player.plane.height", 15, &height)) {
     error_loading(result, "`tabs.player.plane.height` is not valid in config.");
   }
-  config->tabs.player.plane.plane_height= height;
-  config->tabs.player.plane.plane_width = width;
+  config->tabs.player.plane.height= height;
+  config->tabs.player.plane.width = width;
 }
 
 int config_load(Config *config) {
