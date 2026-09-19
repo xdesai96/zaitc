@@ -70,10 +70,16 @@ static int load_mpd_config(Config *config) {
   return 1;
 }
 
-int config_load(Config *config) {
+static Config config_default(Config *config) {
+  config->mpd.host = "localhost";
+  config->mpd.port = 6600;
+  config->mpd.timeout = 10000;
+  return *config;
+}
+
+void config_load(Config *config) {
   if (!load_mpd_config(config))
-    return 0;
-  return 1;
+    config_default(config);
 }
 
 void config_free(Config *config) {
