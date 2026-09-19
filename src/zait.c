@@ -59,8 +59,8 @@ int main(void) {
     .mpd = &mpd,
     .view = {
       .root = {
-        .height = 15,
-        .width = 80,
+        .height = cfg.tabs.player.plane_height,
+        .width = cfg.tabs.player.plane_width,
       },
     },
   };

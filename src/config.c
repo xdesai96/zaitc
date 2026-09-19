@@ -1,5 +1,12 @@
 #include "config.h"
 
+static void error_loading(toml_result_t *result, const char *mes) {
+  fprintf(stderr, "TOML error: %s\n", mes);
+  if (result != NULL)
+    toml_free(*result);
+  exit(EXIT_FAILURE);
+}
+
 static char *config_path(void) {
   const char *xdg = getenv("XDG_CONFIG_HOME");
   const char *home = getenv("HOME");
@@ -25,76 +32,69 @@ static char *config_path(void) {
   return NULL;
 }
 
-static int config_default(Config *config) {
-  config->mpd.host = strdup("localhost");
-  if (config->mpd.host == NULL) {
-    return 0;
+static int load_int(toml_result_t result, const char *key, int def, int *out) {
+  toml_datum_t value = toml_seek(result.toptab, key);
+  switch (value.type) {
+    case TOML_UNKNOWN:
+      *out = def;
+      return 1;
+    case TOML_INT64:
+      *out = value.u.int64;
+      return 1;
+    default:
+      return 0;
   }
-  config->mpd.port = 6600;
-  config->mpd.timeout = 10000;
-  return 1;
 }
 
-static int load_mpd_config(Config *config) {
-  char *path = config_path();
-  if (!path) {
-    return -1;
+static const char *load_str(toml_result_t result, const char *key, const char *def) {
+  toml_datum_t value = toml_seek(result.toptab, key);
+  switch (value.type) {
+    case TOML_UNKNOWN:
+      return def;
+    case TOML_STRING:
+      return value.u.s;
+    default:
+      return NULL;
   }
-  toml_result_t result = toml_parse_file_ex(path);
-  if (!result.ok) {
-    fprintf(stderr, "TOML error: %s\n", result.errmsg);
-    free(path);
-    return 0;
-  }
-  free(path);
+}
 
-  const char *host;
-  toml_datum_t host_parsed = toml_seek(result.toptab, "mpd.host");
-  switch (host_parsed.type) {
-    case TOML_UNKNOWN: host = "localhost";    break;
-    case TOML_STRING: host = host_parsed.u.s; break;
-    default:
-      fprintf(stderr, "TOML error: invalid 'host' type in config.\n");
-      toml_free(result);
-      return 0;
-  }
+static void load_mpd_config(toml_result_t *result, Config *config) {
+  const char *host = load_str(*result, "mpd.host", "localhost");
+  if (host == NULL)
+    error_loading(result, "`mpd.host` is not valid in config.");
   int port, timeout;
-  toml_datum_t port_parsed = toml_seek(result.toptab, "mpd.port");
-  switch (port_parsed.type) {
-    case TOML_UNKNOWN: port = 6600;              break;
-    case TOML_INT64: port = port_parsed.u.int64; break;
-    default:
-      fprintf(stderr, "TOML error: invalid 'port' type in config.\n");
-      toml_free(result);
-      return 0;
-  }
-  toml_datum_t timeout_parsed = toml_seek(result.toptab, "mpd.timeout");
-  switch (timeout_parsed.type) {
-    case TOML_UNKNOWN: timeout = 10000;             break;
-    case TOML_INT64: timeout = timeout_parsed.u.int64; break;
-    default:
-      fprintf(stderr, "TOML error: invalid 'timeout' type in config.\n");
-      toml_free(result);
-      return 0;
-  }
+  if (!load_int(*result, "mpd.port", 6600, &port))
+    error_loading(result, "`mpd.port` is not valid in config.");
+  if (!load_int(*result, "mpd.timeout", 10000, &timeout))
+    error_loading(result, "`mpd.timeout` is not valid in config.");
   config->mpd.host = strdup(host);
-  if (config->mpd.host == NULL) {
-    toml_free(result);
-    return 0;
-  }
+  if (config->mpd.host == NULL)
+    error_loading(result, "Couldn't allocate memory for `mpd.host`.");
   config->mpd.port = port;
   config->mpd.timeout = timeout;
-  toml_free(result);
-  return 1;
+}
+
+static void load_tabs_config(toml_result_t *result, Config *config) {
+  int width, height;
+  if (!load_int(*result, "tabs.player.plane.width", 80, &width))
+    error_loading(result, "`tabs.player.plane.width` is not valid in config.");
+  if (!load_int(*result, "tabs.player.plane.height", 15, &height)) {
+    error_loading(result, "`tabs.player.plane.height` is not valid in config.");
+  }
+  config->tabs.player.plane.plane_height= height;
+  config->tabs.player.plane.plane_width = width;
 }
 
 int config_load(Config *config) {
-  int loaded = load_mpd_config(config);
-  if (loaded < 0) // Couldn't read the config file
-    return config_default(config);
-  if (!loaded) // Read the file but couldn't properly load
-    return 0;
-  return 1; // Well done
+  char *path = config_path();
+  if (!path) return -1;
+  toml_result_t result = toml_parse_file_ex(path);
+  free(path);
+  if (!result.ok) error_loading(&result, result.errmsg);
+  load_mpd_config(&result, config);
+  load_tabs_config(&result, config);
+  toml_free(result);
+  return 1;
 }
 
 void config_free(Config *config) {
