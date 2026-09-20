@@ -18,6 +18,7 @@ int main(void) {
   if (!config_load(&cfg)) {
     return EXIT_FAILURE;
   }
+
   // INIT MPD
   Image cover = {0};
   Mpd mpd = {
@@ -32,6 +33,7 @@ int main(void) {
     fprintf(stderr, "MPD: Couldn't connect\n");
     return 1;
   }
+
   // INIT NOTCURSES
   struct notcurses_options ncopts = {
     .flags    = NCOPTION_SUPPRESS_BANNERS,
@@ -49,6 +51,7 @@ int main(void) {
   }
   struct ncplane *stdplane = notcurses_stdplane(nc);
   struct ncinput ni;
+
   // CREATE TABS
   struct nctabbed_options tbopts = {
     .selchan   = NCCHANNELS_INITIALIZER(255, 255, 255, NCALPHA_TRANSPARENT, NCALPHA_TRANSPARENT, NCALPHA_TRANSPARENT),
@@ -83,12 +86,29 @@ int main(void) {
   };
   // Can we load images?
   mpd.song.cover->can_load = notcurses_canopen_images(nc);
+
   // START LOOP
   int quit = 0;
   unsigned int key_id;
+  unsigned int std_y, std_x, nstd_y, nstd_x;
+  notcurses_term_dim_yx(nc, &std_y, &std_x);
   while (!quit) {
-    // LISTEN KEYS
+    // RESIZE HANDLER
+    notcurses_term_dim_yx(nc, &nstd_y, &nstd_x);
+    if (std_y != nstd_y || std_x != nstd_x) {
+      std_y = nstd_y;
+      std_x = nstd_x;
+      notcurses_refresh(nc, NULL, NULL);
+      switch (tabs.current->key_id) {
+        case '1':
+          player_handle_resize(&playerCtx.view, stdplane);
+          break;
+        default: break;
+      }
+    }
+
     key_id = notcurses_get_nblock(nc, &ni);
+    // LISTEN KEYS
     if (key_id != 0 &&
       (ni.evtype == NCTYPE_RELEASE ||
       ni.evtype == NCTYPE_REPEAT ||
@@ -98,13 +118,17 @@ int main(void) {
       mpd_handle_keys(key_id, &mpd);
       tab_bindings(&tabs, key_id);
     }
+
     mpd_get_current_song(&mpd);
+
     // RENDER CONTENT
     nctabbed_redraw(tabs.tb);
     notcurses_render(nc);
+
     // FPS
     usleep(1000000 / 24); // To save your cpu
   }
+
   mpd_disconnect(&mpd);
   config_free(&cfg);
   ncvisual_destroy(playerCtx.view.cover);

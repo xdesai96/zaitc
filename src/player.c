@@ -191,6 +191,12 @@ static void player_update(PlayerContext *ctx) {
   return;
 }
 
+void player_handle_resize(PlayerView *view, struct ncplane *ncp) {
+  unsigned int max_y, max_x;
+  ncplane_dim_yx(ncp, &max_y, &max_x);
+  ncplane_move_yx(view->root.plane, (max_y - view->root.height) / 2, (max_x - view->root.width) / 2);
+}
+
 void player_view_destroy(void *data) {
   PlayerView *view = data;
   ncplane_family_destroy(view->root.plane);

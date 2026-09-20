@@ -33,6 +33,7 @@ typedef struct {
 
 void player_callback(struct nctab *t, struct ncplane *ncp, void *curry);
 void player_view_destroy(void *data);
+void player_handle_resize(PlayerView *view, struct ncplane *ncp);
 
 #endif // ZAITC_PLAYER
 
