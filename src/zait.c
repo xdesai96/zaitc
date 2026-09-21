@@ -2,6 +2,7 @@
 #include "tabs.h"
 #include "player.h"
 #include "mpd.h"
+#include <assert.h>
 #include <stdio.h>
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -11,6 +12,22 @@
 #include <mpd/client.h>
 #include <notcurses/notcurses.h>
 #include <unistd.h>
+
+void handle_resize(TabList tabs, PlayerContext *playerCtx, struct notcurses *nc, struct ncplane *stdplane, unsigned int *std_y, unsigned int *std_x) {
+  unsigned int nstd_y, nstd_x;
+  notcurses_term_dim_yx(nc, &nstd_y, &nstd_x);
+  if (*std_y != nstd_y || *std_x != nstd_x) {
+    *std_y = nstd_y;
+    *std_x = nstd_x;
+    notcurses_refresh(nc, NULL, NULL);
+    switch (tabs.current->key_id) {
+      case '1':
+        player_handle_resize(&playerCtx->view, stdplane);
+        break;
+      default: break;
+    }
+  }
+}
 
 int main(void) {
   // LOAD CONFIG
@@ -31,7 +48,7 @@ int main(void) {
   int connected = mpd_connect(&mpd);
   if (!connected) {
     fprintf(stderr, "MPD: Couldn't connect\n");
-    return 1;
+    return EXIT_FAILURE;
   }
 
   // INIT NOTCURSES
@@ -90,22 +107,11 @@ int main(void) {
   // START LOOP
   int quit = 0;
   unsigned int key_id;
-  unsigned int std_y, std_x, nstd_y, nstd_x;
+  unsigned int std_y, std_x;
   notcurses_term_dim_yx(nc, &std_y, &std_x);
   while (!quit) {
     // RESIZE HANDLER
-    notcurses_term_dim_yx(nc, &nstd_y, &nstd_x);
-    if (std_y != nstd_y || std_x != nstd_x) {
-      std_y = nstd_y;
-      std_x = nstd_x;
-      notcurses_refresh(nc, NULL, NULL);
-      switch (tabs.current->key_id) {
-        case '1':
-          player_handle_resize(&playerCtx.view, stdplane);
-          break;
-        default: break;
-      }
-    }
+    handle_resize(tabs, &playerCtx, nc, stdplane, &std_y, &std_x);
 
     key_id = notcurses_get_nblock(nc, &ni);
     // LISTEN KEYS
