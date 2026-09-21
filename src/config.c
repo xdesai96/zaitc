@@ -98,5 +98,6 @@ int config_load(Config *config) {
 }
 
 void config_free(Config *config) {
-  free(config->mpd.host);
+  if (config->mpd.host != NULL)
+    free(config->mpd.host);
 }

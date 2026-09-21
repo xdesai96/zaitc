@@ -54,11 +54,15 @@ void mpd_disconnect(Mpd *ctx) {
   if (ctx->conn != NULL) {
     mpd_connection_free(ctx->conn);
     ctx->conn = NULL;
-    free(ctx->song.cover->data);
-    free(ctx->song.uri);
-    free(ctx->song.title);
-    free(ctx->song.artist);
   }
+  if (ctx->song.cover->data != NULL)
+    free(ctx->song.cover->data);
+  if (ctx->song.uri != NULL)
+    free(ctx->song.uri);
+  if (ctx->song.title != NULL)
+    free(ctx->song.title);
+  if (ctx->song.artist != NULL)
+    free(ctx->song.artist);
 }
 
 static void mpd_toggle_playback(Mpd *ctx) {
