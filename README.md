@@ -55,15 +55,27 @@ nix run git+https://codeberg.org/xdesai/zaitc.git
 
 ### Configuration
 
-Configuration support is currently limited.
+The configuration file is loaded from:
 
-For now, settings can be changed in `src/zait.c` before building.
-A proper configuration system is planned.
+- `$XDG_CONFIG_HOME/zaitc/config.toml`
+- `$HOME/.config/zaitc/config.toml` if `XDG_CONFIG_HOME` is not set
+
+Default config:
+
+```toml
+[mpd]
+host = "localhost"
+port = 6600
+timeout = 10000
+
+[tabs.player]
+plane = { width = 80, height = 15 }
+```
 
 ## TODO
 
 - [ ] Add command-line options (e.g. `--host` `--port`)
-- [ ] Figure out the configuration/settings implementation
+- [ ] Add more configuration options
 - [ ] Add `library` tab
 - [ ] Add `queue` tab
 - [ ] Finish `help` tab
